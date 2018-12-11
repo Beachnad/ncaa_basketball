@@ -65,14 +65,15 @@ class GamePages(WebScraper):
             url = f'{BASE_URL}/cbb/boxscores/index.cgi?month={dt.month}&day={dt.day}&year={dt.year}'
             scores = self.get_soup(url)
             if scores.find('div', {'id': 'all_other_scores'}):
-                for link in scores.find('div', {'id': 'all_other_scores'}).find_all('a', href=True, text='Final'):
+                for i, link in enumerate(scores.find('div', {'id': 'all_other_scores'}).find_all('a', href=True, text='Final')):
                     soup = self.get_soup(f"{BASE_URL}{link['href']}")
                     soup.__setattr__('date', dt)
+                    soup.__setattr__('game_num', i)
                     yield soup
 
     def get_data(self, start, end):
         DATA_KEYS = {
-            'team_id','date', 'opp_id', 'loc', 'home_away_neutral', 'result',
+            'game_data_id','team_id','date', 'opp_id', 'loc', 'home_away_neutral', 'result',
             'fg','fga','fg2','fg2a','fg3','fg3a','ft', 'fta','orb',
             'drb','trb','ast','stl','blk','tov','pf','pts'}
         for pg in self.iter_pages(start, end):
@@ -92,19 +93,21 @@ class GamePages(WebScraper):
                 team_id = (home_id, away_id)[i]
                 opp_stats = (home_stats, away_stats)[0 if i == 1 else 1]
                 opp_id = (home_id, away_id)[0 if i == 1 else 1]
+                game_stats_id = f'{pg.date.year}{str(pg.date.month).zfill(2)}{str(pg.date.day).zfill(2)}{str(pg.game_num).zfill(2)}{i}'
+                game_stats_id = int(game_stats_id)
+                print(game_stats_id)
 
-                if not team_id:
+                if not team_id or not opp_id:
                     continue
-                try:
-                    data = {'team_id': team_id, 'date': pg.date, 'opp_id': opp_id, 'loc': location,
-                            'home_away_neutral': 'H' if i == 0 else 'A',
-                            'result': 'W' if int(stats['pts']) > int(opp_stats['pts']) else 'L'}
-                    for k, v in stats.items():
-                        if k in DATA_KEYS:
-                            data[k] = int(v)
-                    yield data
-                except ValueError:
-                    continue
+
+                data = {'team_id': team_id, 'date': pg.date, 'opp_id': opp_id, 'loc': location,
+                        'home_away_neutral': 'H' if i == 0 else 'A',
+                        'result': 'W' if int(stats['pts']) > int(opp_stats['pts']) else 'L',
+                        'game_stats_id': game_stats_id}
+                for k, v in stats.items():
+                    if k in DATA_KEYS:
+                        data[k] = int(v)
+                yield data
 
 
     @staticmethod
