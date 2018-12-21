@@ -51,3 +51,4 @@ target/
 .idea/
 .Rproj.user
 .httr-oauth
+ncaa_game_data.csv

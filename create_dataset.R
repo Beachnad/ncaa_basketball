@@ -6,6 +6,7 @@ library(scales)
 
 conn <- dbConnect(RSQLite::SQLite(), "db")
 
+write.csv(game_data, 'ncaa_game_data.csv')
 
 game_data <- dbGetQuery(conn, "SELECT * FROM game_data") %>%
   filter(!is.na(opp_id)) %>%
